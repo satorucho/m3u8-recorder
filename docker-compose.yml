@@ -1,0 +1,49 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: m3u8_recorder_db
+    environment:
+      POSTGRES_USER: m3u8_user
+      POSTGRES_PASSWORD: m3u8_password
+      POSTGRES_DB: m3u8_recorder
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5489:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U m3u8_user -d m3u8_recorder"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: m3u8_recorder_backend
+    environment:
+      DATABASE_URL: postgresql://m3u8_user:m3u8_password@postgres:5432/m3u8_recorder
+      RECORDINGS_PATH: /app/recordings
+    volumes:
+      - ./backend/app:/app/app
+      - ./recordings_data:/app/recordings
+    ports:
+      - "8055:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: m3u8_recorder_frontend
+    ports:
+      - "3125:3000"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
