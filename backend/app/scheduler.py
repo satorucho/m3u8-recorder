@@ -42,10 +42,11 @@ def start_recording(recording_id: UUID, m3u8_url: str, output_path: str):
         
         logger.info(f"Starting recording {recording_id}: {' '.join(cmd)}")
         
+        # Fix for hypothesis A: Use DEVNULL to avoid buffer overflow deadlock
         process = subprocess.Popen(
             cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
         )
         
         active_recordings[recording_id] = process
